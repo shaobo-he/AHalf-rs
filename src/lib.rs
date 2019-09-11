@@ -11,8 +11,17 @@ extern "C" {
 // the type `f16`, which is a wrapper around a u16
 #[derive(Debug, Copy, Clone)]
 pub struct f16 {
-    bit_repr : u16,
+    bit_repr: u16,
 }
+
+const EXP_BW: u16 = 5;
+const SIG_BW: u16 = 10;
+const SIG_MASK: u16 = 1023;
+const EXP_MASK: u16 = 31;
+const POS_INF_BR: u16 = 31744;
+const NEG_INF_BR: u16 = 64512;
+const POS_ZERO_BR: u16 = 0;
+const NEG_ZERO_BR: u16 = 32768;
 
 impl f16 {
     // bit conversions
@@ -24,6 +33,54 @@ impl f16 {
 
     fn to_bits(self) -> u16 {
         self.bit_repr
+    }
+
+    fn get_exp_bits(self) -> u16 {
+        (self.to_bits() >> SIG_BW) & EXP_MASK
+    }
+
+    fn get_sig_bits(self) -> u16 {
+        self.to_bits() & SIG_MASK
+    }
+
+    fn get_sign_bit(self) -> u16 {
+        self.to_bits() >> (SIG_BW + EXP_BW)
+    }
+
+    // predicates
+    fn is_finite(self) -> bool {
+        self.get_exp_bits() < EXP_MASK
+    }
+
+    fn is_infinite(self) -> bool {
+        let b = self.to_bits();
+        b == POS_INF_BR || b == NEG_INF_BR
+    }
+
+    fn is_nan(self) -> bool {
+        self != self
+    }
+
+    fn is_normal(self) -> bool {
+        let exp = self.get_exp_bits();
+        exp > 0 && exp < EXP_MASK
+    }
+
+    fn is_sign_positive(self) -> bool {
+        self.get_sign_bit() == 0
+    }
+
+    fn is_sign_negative(self) -> bool {
+        !self.is_sign_positive()
+    }
+
+    fn is_subnormal(self) -> bool {
+        self.get_exp_bits() == 0 && !self.is_zero()
+    }
+
+    fn is_zero(self) -> bool {
+        let b = self.to_bits();
+        b == POS_ZERO_BR || b == NEG_ZERO_BR
     }
 }
 
@@ -43,6 +100,7 @@ impl From<f32> for f16 {
         }
     }
 }
+
 
 macro_rules! bin_op {
     ($op_name:ident, $ret_type:ty) => {
@@ -84,6 +142,7 @@ bin_arith!(Add, add);
 bin_arith!(Sub, sub);
 bin_arith!(Mul, mul);
 bin_arith!(Div, div);
+
 
 #[cfg(test)]
 mod tests {
@@ -151,4 +210,20 @@ mod tests {
         assert_eq!(x1, x0+x1);
         assert_eq!(x0, x0*x1);
     }
+
+    #[test]
+    fn predicates() {
+        let nan: f16 = f16::from(0.0/0.0);
+        let pos_inf: f16 = f16::from(1.0/0.0);
+        let neg_inf: f16 = f16::from(-1.0/0.0);
+        let xmin: f16 = f16::from_bits(1);
+        assert!(nan.is_nan());
+        assert!(pos_inf.is_infinite());
+        assert!(neg_inf.is_infinite());
+        assert!(pos_inf.is_sign_positive());
+        assert!(neg_inf.is_sign_negative());
+        assert!(!xmin.is_normal());
+        assert!(xmin.is_subnormal());
+    }
+
 }
