@@ -1,6 +1,7 @@
 #[warn(non_camel_case_types)]
 
 use std::cmp::Ordering;
+use std::ops::{Add, Sub, Mul, Div};
 
 extern "C" {
     fn hs_floatToHalf(f: f32) -> u16; 
@@ -43,26 +44,46 @@ impl From<f32> for f16 {
     }
 }
 
-macro_rules! bin_pred {
-    ($pred_name:ident, $ret_type:ty) => {
-        fn $pred_name(&self, other: &Self) -> $ret_type {
+macro_rules! bin_op {
+    ($op_name:ident, $ret_type:ty) => {
+        fn $op_name(&self, other: &Self) -> $ret_type {
             let lhs = f32::from(*self);
             let rhs = &f32::from(*other);
-            lhs.$pred_name(rhs)
+            lhs.$op_name(rhs)
+        }
+    }
+}
+
+macro_rules! bin_arith {
+    ($op_trait:ident, $op_name:ident) => {
+        impl $op_trait for f16 {
+            type Output = f16;
+
+            fn $op_name(self, other: Self) -> Self {
+                let lhs = f32::from(self);
+                let rhs = f32::from(other);
+                Self::from(lhs.$op_name(rhs))
+            }
         }
     }
 }
 
 // partial equality
 impl PartialEq for f16 {
-    bin_pred!(eq, bool);
-    bin_pred!(ne, bool);
+    bin_op!(eq, bool);
+    bin_op!(ne, bool);
 }
 
 // partial order
 impl PartialOrd for f16 {
-    bin_pred!(partial_cmp, Option<Ordering>);
+    bin_op!(partial_cmp, Option<Ordering>);
 }
+
+// arithmetic
+bin_arith!(Add, add);
+bin_arith!(Sub, sub);
+bin_arith!(Mul, mul);
+bin_arith!(Div, div);
 
 #[cfg(test)]
 mod tests {
@@ -121,5 +142,13 @@ mod tests {
         let x0: f16 = f16::from_bits(0);
         let x1: f16 = f16::from_bits(1);
         assert!(x0 < x1);
+    }
+
+    #[test]
+    fn arith_ops() {
+        let x0: f16 = f16::from_bits(0);
+        let x1: f16 = f16::from_bits(1);
+        assert_eq!(x1, x0+x1);
+        assert_eq!(x0, x0*x1);
     }
 }
