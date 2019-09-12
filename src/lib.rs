@@ -2,6 +2,7 @@
 
 use std::cmp::Ordering;
 use std::ops::{Add, Sub, Mul, Div};
+use std::fmt;
 
 extern "C" {
     fn hs_floatToHalf(f: f32) -> u16; 
@@ -159,6 +160,13 @@ bin_arith!(Add, add);
 bin_arith!(Sub, sub);
 bin_arith!(Mul, mul);
 bin_arith!(Div, div);
+
+// printer
+impl fmt::Display for f16 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f32::from(*self).fmt(f)
+    }
+}
 
 
 #[cfg(test)]
