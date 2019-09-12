@@ -1,4 +1,4 @@
-#[warn(non_camel_case_types)]
+//! A crate that implements a half-precision floating-point type `f16` and its associated methods.
 
 use std::cmp::Ordering;
 use std::ops::{Add, Sub, Mul, Div};
@@ -8,8 +8,9 @@ extern "C" {
     fn hs_halfToFloat(c: u16) -> f32; 
 }
 
-// the type `f16`, which is a wrapper around a u16
+/// Type `f16`, which is essentially a wrapper around u16.
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub struct f16 {
     bit_repr: u16,
 }
@@ -25,13 +26,17 @@ const NEG_ZERO_BR: u16 = 32768;
 
 impl f16 {
     // bit conversions
-    fn from_bits(x: u16) -> Self {
+    /// Build a `f16` from its bit-representation.
+    #[inline]
+    pub fn from_bits(x: u16) -> Self {
         Self {
             bit_repr: x,
         }
     }
 
-    fn to_bits(self) -> u16 {
+    /// Obtain a `f16`'s bit-representation.
+    #[inline]
+    pub fn to_bits(self) -> u16 {
         self.bit_repr
     }
 
@@ -48,29 +53,41 @@ impl f16 {
     }
 
     // predicates
-    fn is_finite(self) -> bool {
+    /// The `is_finite` method for `f16`
+    #[inline]
+    pub fn is_finite(self) -> bool {
         self.get_exp_bits() < EXP_MASK
     }
 
-    fn is_infinite(self) -> bool {
+    /// The `is_infinite` method for `f16`
+    #[inline]
+    pub fn is_infinite(self) -> bool {
         let b = self.to_bits();
         b == POS_INF_BR || b == NEG_INF_BR
     }
 
-    fn is_nan(self) -> bool {
+    /// The `is_nan` method for `f16`
+    #[inline]
+    pub fn is_nan(self) -> bool {
         self != self
     }
 
-    fn is_normal(self) -> bool {
+    /// The `is_normal` method for `f16`
+    #[inline]
+    pub fn is_normal(self) -> bool {
         let exp = self.get_exp_bits();
         exp > 0 && exp < EXP_MASK
     }
 
-    fn is_sign_positive(self) -> bool {
+    /// The `is_sign_positive` method for `f16`
+    #[inline]
+    pub fn is_sign_positive(self) -> bool {
         self.get_sign_bit() == 0
     }
 
-    fn is_sign_negative(self) -> bool {
+    /// The `is_sign_negative` method for `f16`
+    #[inline]
+    pub fn is_sign_negative(self) -> bool {
         !self.is_sign_positive()
     }
 
